@@ -24,8 +24,6 @@
           <th>IP</th>
           <th>Username</th>
           <th>Password</th>
-          <th>Status</th>
-          <th>Monitored</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -35,16 +33,6 @@
           <td>{{ router.ip }}</td>
           <td>{{ router.username }}</td>
           <td>{{ router.password }}</td>
-          <td class="status {{ router.status|lower }}">{{ router.status }}</td>
-          <td>
-            <form action="/toggle_monitor/{{ router.ip }}" method="post">
-              {% if router.is_monitored %}
-                <button class="btn-monitor on">ON</button>
-              {% else %}
-                <button class="btn-monitor off">OFF</button>
-              {% endif %}
-            </form>
-          </td>
           <td>
             <form action="/delete/{{ router.ip }}" method="post" class="delete-form">
               <button type="submit" class="btn-delete">DELETE</button>

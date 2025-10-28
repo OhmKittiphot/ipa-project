@@ -40,21 +40,10 @@ def add_router():
     return redirect("/")
 
 # Delete Router
-@app.route("/delete/<int:ip>", methods=["POST"])
+@app.route("/delete/<string:ip>", methods=["POST"])
 def delete_router(ip):
     cursor.execute("DELETE FROM routers WHERE ip = %s", (ip,))
     db.commit()
-    return redirect("/")
-
-# Toggle Monitor
-@app.route("/toggle_monitor/<int:ip>", methods=["POST"])
-def toggle_monitor(ip):
-    cursor.execute("SELECT is_monitored FROM routers WHERE ip = %s", (ip,))
-    result = cursor.fetchone()
-    if result:
-        new_value = not result["is_monitored"]
-        cursor.execute("UPDATE routers SET is_monitored = %s WHERE ip = %s", (new_value, ip))
-        db.commit()
     return redirect("/")
 
 # RUN
