@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Router Manager</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Router Manager</h1>
+
+    <form action="/add" method="post" class="add-form">
+      <input type="text" name="ip" placeholder="Router IP" required>
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Add Router</button>
+    </form>
+
+    <hr>
+
+    <table>
+      <thead>
+        <tr>
+          <th>IP</th>
+          <th>Username</th>
+          <th>Password</th>
+          <th>Status</th>
+          <th>Monitored</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for router in routers %}
+        <tr>
+          <td>{{ router.ip }}</td>
+          <td>{{ router.username }}</td>
+          <td>{{ router.password }}</td>
+          <td class="status {{ router.status|lower }}">{{ router.status }}</td>
+          <td>
+            <form action="/toggle_monitor/{{ router.ip }}" method="post">
+              {% if router.is_monitored %}
+                <button class="btn-monitor on">ON</button>
+              {% else %}
+                <button class="btn-monitor off">OFF</button>
+              {% endif %}
+            </form>
+          </td>
+          <td>
+            <form action="/delete/{{ router.ip }}" method="post" class="delete-form">
+              <button type="submit" class="btn-delete">DELETE</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
