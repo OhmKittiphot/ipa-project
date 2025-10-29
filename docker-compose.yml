@@ -2,15 +2,21 @@ services:
   web:
     build: ./web
     ports:
-      - "${WEB_PORT}:8080"
+      - "${WEB_PORT:-8080}:8080"
     depends_on:
       - mysql
+      - rabbitmq
+    networks:
+      - app-net
+    env_file:
+      - .env
     environment:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-
+    restart: always
+  
   mysql:
     image: mysql:8
     restart: always
@@ -20,9 +26,50 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - app-net
+    healthcheck: 
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+      timeout: 3s
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "15672:15672"  
+      - "5672:5672"   
+    networks:
+      - app-net
+    env_file:
+      - .env
+    environment:
+    - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+    - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+  
+  scheduler:
+    build: ./scheduler
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app-net
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
 
 volumes:
   mysql_data:
+
+networks:
+  app-net:
