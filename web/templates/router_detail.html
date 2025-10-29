@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Router {{ router_ip }} - Detail</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Router: {{ router_ip }}</h1>
+    <a href="/" class="back-btn">← Back</a>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Interface</th>
+          <th>IP Address</th>
+          <th>Status</th>
+          <th>Protocol</th>
+          <th>Monitored</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in router_details %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ item.interface_name }}</td>
+          <td>{{ item.ip_address }}</td>
+          <td class="status {{ item.status|lower }}">{{ item.status }}</td>
+          <td>{{ item.proto }}</td>
+          <td>
+  <form action="/toggle_interface_monitor/{{ item.id }}" method="post" style="display:inline;">
+    {% if item.is_monitored %}
+      <button type="submit" class="btn-monitor on">ON</button>
+    {% else %}
+      <button type="submit" class="btn-monitor off">OFF</button>
+    {% endif %}
+  </form>
+</td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <script>
+    setInterval(() => {
+      location.reload();
+    }, 5000);
+  </script>
+</body>
+</html>

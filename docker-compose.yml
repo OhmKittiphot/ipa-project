@@ -2,7 +2,7 @@ services:
   web:
     build: ./web
     ports:
-      - "${WEB_PORT:-8080}:8080"
+      - "8080:8080"
     depends_on:
       - mysql
       - rabbitmq
@@ -25,8 +25,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: "Asia/Bangkok"
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -67,6 +68,16 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
+  worker:
+    build: ./worker
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app-net
+    env_file:
+      - .env
+    restart: always
 
 volumes:
   mysql_data:

@@ -30,7 +30,7 @@
       <tbody>
         {% for router in routers %}
         <tr>
-          <td>{{ router.ip }}</td>
+          <td><a href="{{ url_for('get_router', ip=router.ip) }}">{{ router.ip }}</a></td>
           <td>{{ router.username }}</td>
           <td>{{ router.password }}</td>
           <td>
