@@ -1,8 +1,9 @@
-import time
 import json
 import os
-from producer import produce
+import time
+
 from database import get_router_info
+from producer import produce
 
 
 def scheduler():

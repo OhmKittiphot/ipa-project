@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect
-import mysql.connector
 import os
-import time
+
+import mysql.connector
+from flask import Flask, redirect, render_template, request
 
 app = Flask(__name__)
 

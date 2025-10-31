@@ -1,6 +1,7 @@
 import json
-from router_client import get_interfaces
+
 from database import save_interface_status
+from router_client import get_interfaces
 
 
 def callback(ch, method, props, body):
