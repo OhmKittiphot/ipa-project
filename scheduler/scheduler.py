@@ -4,6 +4,7 @@ import os
 from producer import produce
 from database import get_router_info
 
+
 def scheduler():
     INTERVAL = 10.0
     next_run = time.monotonic()
@@ -30,6 +31,7 @@ def scheduler():
         count += 1
         next_run += INTERVAL
         time.sleep(max(0.0, next_run - time.monotonic()))
+
 
 if __name__ == "__main__":
     scheduler()

@@ -1,6 +1,7 @@
 import os
 import mysql.connector
 
+
 def get_router_info():
     db_host = os.environ.get("DB_HOST")
     db_user = os.environ.get("DB_USER")
@@ -8,10 +9,7 @@ def get_router_info():
     db_name = os.environ.get("DB_NAME")
 
     connection = mysql.connector.connect(
-        host=db_host,
-        user=db_user,
-        password=db_password,
-        database=db_name
+        host=db_host, user=db_user, password=db_password, database=db_name
     )
 
     cursor = connection.cursor(dictionary=True)
@@ -21,6 +19,7 @@ def get_router_info():
     connection.close()
 
     return routers
+
 
 if __name__ == "__main__":
     get_router_info()

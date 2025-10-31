@@ -3,7 +3,9 @@ from datetime import datetime
 import os
 import requests
 from datetime import datetime, timedelta, timezone
+
 THAI_TZ = timezone(timedelta(hours=7))
+
 
 def save_interface_status(router_ip, interfaces):
     db_host = os.getenv("DB_HOST")
@@ -12,10 +14,7 @@ def save_interface_status(router_ip, interfaces):
     db_name = os.getenv("DB_NAME")
 
     conn = mysql.connector.connect(
-        host=db_host,
-        user=db_user,
-        password=db_password,
-        database=db_name
+        host=db_host, user=db_user, password=db_password, database=db_name
     )
     cursor = conn.cursor(dictionary=True)
 
@@ -25,17 +24,21 @@ def save_interface_status(router_ip, interfaces):
         status = iface.get("status")
         proto = iface.get("proto")
 
-        #CHECK DB
-        cursor.execute("""
+        # CHECK DB
+        cursor.execute(
+            """
             SELECT is_monitored FROM interface_status
             WHERE router_ip = %s AND interface_name = %s
             LIMIT 1
-        """, (router_ip, interface_name))
+        """,
+            (router_ip, interface_name),
+        )
         res = cursor.fetchone()
         is_monitored = res["is_monitored"] if res else True
 
-        #UPDATE
-        cursor.execute("""
+        # UPDATE
+        cursor.execute(
+            """
             INSERT INTO interface_status
                 (router_ip, interface_name, ip_address, status, proto, last_checked)
             VALUES (%s, %s, %s, %s, %s, %s)
@@ -44,7 +47,16 @@ def save_interface_status(router_ip, interfaces):
                 status = VALUES(status),
                 proto = VALUES(proto),
                 last_checked = VALUES(last_checked);
-        """, (router_ip, interface_name, ip_address, status, proto, datetime.now(THAI_TZ)))
+        """,
+            (
+                router_ip,
+                interface_name,
+                ip_address,
+                status,
+                proto,
+                datetime.now(THAI_TZ),
+            ),
+        )
 
         # call notify_discord
         if is_monitored and (status.lower() != "up" or proto.lower() != "up"):
@@ -55,6 +67,7 @@ def save_interface_status(router_ip, interfaces):
     conn.close()
 
     print(f"Saved current interface status for {router_ip}")
+
 
 def notify_discord(router_ip, interface_name, ip_address, status, proto):
     discord_webhook = os.getenv("DISCORD_WEBHOOK")

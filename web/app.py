@@ -6,15 +6,17 @@ import time
 app = Flask(__name__)
 
 
-
 # Connect DB
 db = mysql.connector.connect(
     host=os.getenv("DB_HOST"),
     user=os.getenv("DB_USER"),
     password=os.getenv("DB_PASSWORD"),
-    database=os.getenv("DB_NAME",)
+    database=os.getenv(
+        "DB_NAME",
+    ),
 )
 cursor = db.cursor(dictionary=True)
+
 
 # Main
 @app.route("/", methods=["GET"])
@@ -22,6 +24,7 @@ def index():
     cursor.execute("SELECT * FROM routers")
     routers = cursor.fetchall()
     return render_template("index.html", routers=routers)
+
 
 # Router Details
 @app.route("/router/<ip>", methods=["GET"])
@@ -51,6 +54,8 @@ def get_router(ip):
         router_ip=ip,
         router_details=router_details,
     )
+
+
 # Monitor
 @app.route("/toggle_interface_monitor/<int:id>", methods=["POST"])
 def toggle_interface_monitor(id):
@@ -60,12 +65,16 @@ def toggle_interface_monitor(id):
 
     if result:
         new_value = not result["is_monitored"]
-        cursor.execute("UPDATE interface_status SET is_monitored = %s WHERE id = %s", (new_value, id))
+        cursor.execute(
+            "UPDATE interface_status SET is_monitored = %s WHERE id = %s",
+            (new_value, id),
+        )
         db.commit()
 
     cursor.close()
     referer = request.headers.get("Referer", "/")
     return redirect(referer)
+
 
 # Add Router
 @app.route("/add", methods=["POST"])
@@ -75,12 +84,16 @@ def add_router():
     password = request.form.get("password")
 
     if ip and username and password:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO routers (ip, username, password)
             VALUES (%s, %s, %s)
-        """, (ip, username, password))
+        """,
+            (ip, username, password),
+        )
         db.commit()
     return redirect("/")
+
 
 # Delete Router
 @app.route("/delete/<string:ip>", methods=["POST"])
@@ -88,6 +101,7 @@ def delete_router(ip):
     cursor.execute("DELETE FROM routers WHERE ip = %s", (ip,))
     db.commit()
     return redirect("/")
+
 
 # RUN
 if __name__ == "__main__":
