@@ -1,0 +1,53 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, Linux, X64]
+    environment: production
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create .env for docker-compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}"
+            echo "MYSQL_USER=${{ secrets.MYSQL_USER }}"
+            echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}"
+            echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}"
+
+            echo "RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}"
+            echo "RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}"
+            echo "RABBIT_HOST=${{ secrets.RABBIT_HOST }}"
+
+            echo "DB_NAME=${{ secrets.DB_NAME }}"
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+
+            echo "DISCORD_WEBHOOK=${{ secrets.DISCORD_WEBHOOK }}"
+          } > .env
+          chmod 600 .env
+
+      - name: Pull & Deploy (no build on prod)
+        shell: bash
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+          docker compose ps
