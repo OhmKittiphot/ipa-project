@@ -1,30 +1,36 @@
+version: "3.9"
+
 services:
   web:
     build: ./web
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
-      - rabbitmq
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - app-net
     env_file:
       - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
     restart: always
-  
+
   mysql:
-    image: mysql:8
+    image: mysql:8.4
+    command: ["--default-authentication-plugin=mysql_native_password"]
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      # ถ้า .env ไม่มีค่า -> จะไม่ set เข้า container (กันกรณีหลุดเป็น root)
+      MYSQL_USER: ${MYSQL_USER:-}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
       TZ: "Asia/Bangkok"
     ports:
       - "3306:3306"
@@ -32,26 +38,28 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - app-net
-    healthcheck: 
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      retries: 10
-      timeout: 3s
+    healthcheck:
+      # ต้องใส่ -uroot และ -p$${MYSQL_ROOT_PASSWORD} (ใส่ $$ เพื่อ escape ตอน parse)
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
 
   rabbitmq:
     image: rabbitmq:3-management
     restart: always
     ports:
-      - "15672:15672"  
-      - "5672:5672"   
+      - "15672:15672"   # UI
+      - "5672:5672"     # AMQP
     networks:
       - app-net
     env_file:
       - .env
     environment:
-    - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
-    - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
-  
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+
   scheduler:
     build: ./scheduler
     depends_on:
@@ -64,10 +72,12 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    restart: always
+
   worker:
     build: ./worker
     depends_on:
