@@ -23,20 +23,21 @@ jobs:
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Create .env
         run: |
           {
+            echo "DB_NAME=${{ secrets.DB_NAME }}"
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+            echo "DISCORD_WEBHOOK=${{ secrets.DISCORD_WEBHOOK }}"
+
             echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}"
             echo "MYSQL_USER=${{ secrets.MYSQL_USER }}"
             echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}"
             echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}"
+
             echo "RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}"
             echo "RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}"
             echo "RABBIT_HOST=${{ secrets.RABBIT_HOST }}"
-            echo "DB_NAME=${{ secrets.DB_NAME }}"
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
-            echo "DISCORD_WEBHOOK=${{ secrets.DISCORD_WEBHOOK }}"
           } > .env
           chmod 600 .env
 
