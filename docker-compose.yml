@@ -1,10 +1,9 @@
 services:
   mysql:
     image: mysql:8.4
-    command: ["--default-authentication-plugin=mysql_native_password"]
+    # ✅ ลบ command เดิมออก (ไม่ต้องใช้ default-authentication-plugin อีกต่อไป)
     restart: always
     environment:
-      # ค่านี้ถูกดึงจาก .env ที่ CD สร้างให้
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       TZ: "Asia/Bangkok"
@@ -15,11 +14,11 @@ services:
     networks:
       - app-net
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" || exit 1"]
+      test: ["CMD-SHELL", "mysql -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 30s
+      retries: 20
+      start_period: 90s
 
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -28,8 +27,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - app-net
     healthcheck:
@@ -40,7 +39,6 @@ services:
       start_period: 20s
 
   web:
-    # dev จะ build จากโค้ดโลคอล / prod จะถูก override ด้วย image ใน docker-compose.prod.yml
     build: ./web
     restart: always
     depends_on:
@@ -53,14 +51,12 @@ services:
     env_file:
       - .env
     environment:
-      # ชัดเจนไว้ก่อน ถ้า .env ไม่มีค่า จะ fallback เป็นค่าด้านหลัง
       DB_HOST: ${DB_HOST:-mysql}
       DB_USER: ${DB_USER:-root}
       DB_PASSWORD: ${DB_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
       DB_NAME: ${DB_NAME:-${MYSQL_DATABASE}}
       RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
       DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
-
     ports:
       - "8080:8080"
 
