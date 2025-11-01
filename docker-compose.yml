@@ -1,35 +1,12 @@
-version: "3.9"
-
 services:
-  web:
-    build: ./web
-    ports:
-      - "8080:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-    networks:
-      - app-net
-    env_file:
-      - .env
-    environment:
-      DB_HOST: ${DB_HOST}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-    restart: always
-
   mysql:
     image: mysql:8.4
     command: ["--default-authentication-plugin=mysql_native_password"]
     restart: always
     environment:
+      # ค่านี้ถูกดึงจาก .env ที่ CD สร้างให้
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER:-}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
       TZ: "Asia/Bangkok"
     ports:
       - "3306:3306"
@@ -38,29 +15,34 @@ services:
     networks:
       - app-net
     healthcheck:
-      # เปลี่ยนเป็น CMD-SHELL เพื่อให้ $MYSQL_ROOT_PASSWORD ถูกขยายค่า
-      test: ["CMD-SHELL", 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"']
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
-      start_period: 40s
+      retries: 12
+      start_period: 30s
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.13-management
     restart: always
-    ports:
-      - "15672:15672"
-      - "5672:5672"
-    networks:
-      - app-net
-    env_file:
-      - .env
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
-  scheduler:
-    build: ./scheduler
+  web:
+    # dev จะ build จากโค้ดโลคอล / prod จะถูก override ด้วย image ใน docker-compose.prod.yml
+    build: ./web
+    restart: always
     depends_on:
       mysql:
         condition: service_healthy
@@ -71,22 +53,56 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: ${DB_HOST}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-    restart: always
+      # ชัดเจนไว้ก่อน ถ้า .env ไม่มีค่า จะ fallback เป็นค่าด้านหลัง
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
+      DB_NAME: ${DB_NAME:-${MYSQL_DATABASE}}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
+
+    ports:
+      - "8080:8080"
 
   worker:
     build: ./worker
+    restart: always
     depends_on:
+      mysql:
+        condition: service_healthy
       rabbitmq:
         condition: service_started
     networks:
       - app-net
     env_file:
       - .env
+    environment:
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
+      DB_NAME: ${DB_NAME:-${MYSQL_DATABASE}}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
+
+  scheduler:
+    build: ./scheduler
     restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app-net
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
+      DB_NAME: ${DB_NAME:-${MYSQL_DATABASE}}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
 
 volumes:
   mysql_data:
