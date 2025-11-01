@@ -28,7 +28,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      # ถ้า .env ไม่มีค่า -> จะไม่ set เข้า container (กันกรณีหลุดเป็น root)
       MYSQL_USER: ${MYSQL_USER:-}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
       TZ: "Asia/Bangkok"
@@ -39,8 +38,8 @@ services:
     networks:
       - app-net
     healthcheck:
-      # ต้องใส่ -uroot และ -p$${MYSQL_ROOT_PASSWORD} (ใส่ $$ เพื่อ escape ตอน parse)
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$${MYSQL_ROOT_PASSWORD}"]
+      # เปลี่ยนเป็น CMD-SHELL เพื่อให้ $MYSQL_ROOT_PASSWORD ถูกขยายค่า
+      test: ["CMD-SHELL", 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"']
       interval: 10s
       timeout: 5s
       retries: 20
@@ -50,8 +49,8 @@ services:
     image: rabbitmq:3-management
     restart: always
     ports:
-      - "15672:15672"   # UI
-      - "5672:5672"     # AMQP
+      - "15672:15672"
+      - "5672:5672"
     networks:
       - app-net
     env_file:
