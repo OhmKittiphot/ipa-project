@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ipa-pj-web
-  namespace: ipa-pj
+  namespace: ipa2025
 spec:
   replicas: 2
   selector:
