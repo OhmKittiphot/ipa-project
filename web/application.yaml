@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ipa-pj-web
+  namespace: devops-tools
+spec:
+  project: ipa-pj
+  source:
+    repoURL: 'https://github.com/OhmKittiphot/ipa-project.git'
+    targetRevision: HEAD
+    path: web/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ipa-pj
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

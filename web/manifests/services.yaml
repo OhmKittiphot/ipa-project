@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipa-pj-web-service
+  namespace: ipa-pj
+spec:
+  selector:
+    app: ipa-pj-web
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP

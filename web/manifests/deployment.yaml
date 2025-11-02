@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipa-pj-web
+  namespace: ipa-pj
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ipa-pj-web
+  template:
+    metadata:
+      labels:
+        app: ipa-pj-web
+    spec:
+      containers:
+        - name: ipa-pj
+          image: romieohm/web:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: "secret"
