@@ -1,15 +1,28 @@
-# 1) ConfigMap: init.sql
+# ==========================================
+# 1) ConfigMap: init.sh (อ่าน ENV ได้จริง)
+# ==========================================
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-initdb
   namespace: ipa2025
 data:
-  init.sql: |
-    -- สร้างฐานให้ตรงกับที่แอปใช้
-    CREATE DATABASE IF NOT EXISTS `ipa2025`
+  init.sh: |
+    #!/bin/sh
+    set -e
+
+    # ค่าเริ่มต้น หาก Secret ไม่ได้กำหนดมา
+    : "${MYSQL_DATABASE:=ipa2025}"
+    : "${DB_USER:=ipauser}"
+    : "${DB_PASSWORD:=ipapass123}"
+
+    echo "[init] using MYSQL_DATABASE=$MYSQL_DATABASE DB_USER=$DB_USER"
+
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" <<EOSQL
+    CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\`
       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-    USE `ipa2025`;
+
+    USE \`$MYSQL_DATABASE\`;
 
     -- ตารางตัวอย่าง
     CREATE TABLE IF NOT EXISTS routers (
@@ -30,55 +43,86 @@ data:
                    ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY unique_iface (router_ip, interface_name)
     );
----
-# 2) PVC
+
+    -- user ของแอป (อ่านจาก ENV; ไม่บังคับ plugin)
+    CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';
+    GRANT ALL PRIVILEGES ON \`$MYSQL_DATABASE\`.* TO '$DB_USER'@'%';
+    FLUSH PRIVILEGES;
+    EOSQL
+
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
   namespace: ipa2025
 spec:
-  accessModes: ["ReadWriteOnce"]
+  accessModes:
+    - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
----
-# 3) Deployment MySQL
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
   namespace: ipa2025
-  labels: { app: mysql }
+  labels:
+    app: mysql
 spec:
-  replicas: 2
+  replicas: 1
   selector:
-    matchLabels: { app: mysql }
+    matchLabels:
+      app: mysql
   template:
     metadata:
-      labels: { app: mysql }
+      labels:
+        app: mysql
     spec:
       containers:
         - name: mysql
           image: mysql:8.4
-          args: ["--default-authentication-plugin=mysql_native_password"]
+          imagePullPolicy: IfNotPresent
+
+          envFrom:
+            - secretRef:
+                name: ipa-pj-secret
           env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ipa-pj-secret
-                  key: MYSQL_ROOT_PASSWORD
-            # ให้ตรงกับชื่อ DB ใน init.sql
+            # ถ้าไม่ได้ใส่ใน secret จะใช้ค่าเริ่มต้น (ดูใน init.sh)
             - name: MYSQL_DATABASE
               value: ipa2025
           ports:
             - containerPort: 3306
+              name: mysql
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
             - name: mysql-initdb
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+          # readiness / liveness ช่วยให้ Service รอจนพร้อมจริง
+          readinessProbe:
+            exec:
+              command: ["bash","-lc","mysqladmin ping -uroot -p\"$MYSQL_ROOT_PASSWORD\""]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command: ["bash","-lc","mysqladmin ping -uroot -p\"$MYSQL_ROOT_PASSWORD\""]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
       volumes:
         - name: mysql-data
           persistentVolumeClaim:
@@ -86,16 +130,18 @@ spec:
         - name: mysql-initdb
           configMap:
             name: mysql-initdb
----
-# 4) Service MySQL
+            defaultMode: 0755  # ให้ init.sh รันได้
+
 apiVersion: v1
 kind: Service
 metadata:
   name: mysql-ext
   namespace: ipa2025
 spec:
-  selector: { app: mysql }
+  selector:
+    app: mysql
   ports:
-    - port: 3306
+    - name: mysql
+      port: 3306
       targetPort: 3306
       protocol: TCP
