@@ -5,18 +5,16 @@ metadata:
   namespace: ipa2025
 spec:
   scaleTargetRef:
+    kind: Deployment
     name: ipa-pj-worker
-  pollingInterval: 15
-  cooldownPeriod: 120
   minReplicaCount: 1
-  maxReplicaCount: 10
+  maxReplicaCount: 5
   triggers:
     - type: rabbitmq
       metadata:
+        host: rabbitmq.ipa2025.svc.cluster.local
         queueName: router_jobs
         mode: QueueLength
         value: "10"
-        protocol: auto
-        hostFromEnv: RABBIT_HOST
         usernameFromEnv: RABBITMQ_DEFAULT_USER
         passwordFromEnv: RABBITMQ_DEFAULT_PASS
