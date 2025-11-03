@@ -7,14 +7,14 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      app: ipa2025-pj-worker
+      app: ipa-pj-worker
   template:
     metadata:
       labels:
-        app: ipa2025-pj-worker
+        app: ipa-pj-worker
     spec:
       containers:
-        - name: ipa2025-pj-worker
+        - name: ipa-pj-worker
           image: romieohm/worker:latest
           envFrom:
             - secretRef:
