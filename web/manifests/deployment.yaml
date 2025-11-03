@@ -1,23 +1,106 @@
+# 1) ConfigMap: init.sql
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb
+  namespace: ipa2025
+data:
+  init.sql: |
+    -- สร้างฐานให้ตรงกับที่แอปใช้
+    CREATE DATABASE IF NOT EXISTS `ipa2025`
+      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    USE `ipa2025`;
+
+    -- ตารางตัวอย่าง
+    CREATE TABLE IF NOT EXISTS routers (
+      ip VARCHAR(50) PRIMARY KEY,
+      username VARCHAR(50) NOT NULL,
+      password VARCHAR(50) NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS interface_status (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      router_ip VARCHAR(50) NOT NULL,
+      interface_name VARCHAR(50) NOT NULL,
+      ip_address VARCHAR(50),
+      status VARCHAR(50),
+      proto VARCHAR(50),
+      is_monitored BOOLEAN DEFAULT FALSE,
+      last_checked DATETIME DEFAULT CURRENT_TIMESTAMP
+                   ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY unique_iface (router_ip, interface_name)
+    );
+
+    -- สร้าง user สำหรับแอป (ปรับรหัสผ่านตามจริง)
+    CREATE USER IF NOT EXISTS 'ipauser'@'%' IDENTIFIED WITH mysql_native_password BY 'CHANGE_ME_PASSWORD';
+    GRANT ALL PRIVILEGES ON `ipa2025`.* TO 'ipauser'@'%';
+    FLUSH PRIVILEGES;
+---
+# 2) PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: ipa2025
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+# 3) Deployment MySQL
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ipa-pj-web
+  name: mysql
   namespace: ipa2025
+  labels: { app: mysql }
 spec:
-  replicas: 2
+  replicas: 1
   selector:
-    matchLabels:
-      app: ipa-pj-web
+    matchLabels: { app: mysql }
   template:
     metadata:
-      labels:
-        app: ipa-pj-web
+      labels: { app: mysql }
     spec:
       containers:
-        - name: ipa-pj
-          image: romieohm/web:latest
+        - name: mysql
+          image: mysql:8.4
+          args: ["--default-authentication-plugin=mysql_native_password"]
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ipa-pj-secret
+                  key: MYSQL_ROOT_PASSWORD
+            # ให้ตรงกับชื่อ DB ใน init.sql
+            - name: MYSQL_DATABASE
+              value: ipa2025
           ports:
-            - containerPort: 8080
-          envFrom:
-            - secretRef:
-                name: "ipa-pj-secret"
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: mysql-initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - name: mysql-initdb
+          configMap:
+            name: mysql-initdb
+---
+# 4) Service MySQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-ext
+  namespace: ipa2025
+spec:
+  selector: { app: mysql }
+  ports:
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
