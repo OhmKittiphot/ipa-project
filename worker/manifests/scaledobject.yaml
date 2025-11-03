@@ -1,12 +1,11 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: ipa-pj-scaler
+  name: ipa-pj-worker-scaler
   namespace: ipa2025
 spec:
   scaleTargetRef:
-    kind: Deployment
-    name: ipa-pj-consumer
+    name: ipa-pj-worker
   pollingInterval: 15
   cooldownPeriod: 120
   minReplicaCount: 1
@@ -14,8 +13,10 @@ spec:
   triggers:
     - type: rabbitmq
       metadata:
-        hostFromEnv: RABBIT_HOST
         queueName: router_jobs
         mode: QueueLength
         value: "10"
         protocol: auto
+        hostFromEnv: RABBITMQ_HOST
+        usernameFromEnv: RABBITMQ_DEFAULT_USER
+        passwordFromEnv: RABBITMQ_DEFAULT_PASS
