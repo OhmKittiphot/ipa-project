@@ -5,16 +5,14 @@ metadata:
   namespace: ipa2025
 spec:
   scaleTargetRef:
-    kind: Deployment
     name: ipa-pj-worker
+    kind: Deployment
   minReplicaCount: 1
   maxReplicaCount: 5
   triggers:
     - type: rabbitmq
       metadata:
-        host: rabbitmq.ipa2025.svc.cluster.local
+        host: amqp://admin:rabbitmq@rabbitmq.ipa2025.svc.cluster.local:5672/
         queueName: router_jobs
         mode: QueueLength
         value: "10"
-        usernameFromEnv: RABBITMQ_DEFAULT_USER
-        passwordFromEnv: RABBITMQ_DEFAULT_PASS

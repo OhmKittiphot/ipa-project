@@ -16,18 +16,14 @@ spec:
       containers:
         - name: ipa-pj-worker
           image: romieohm/worker:latest
-          env:
-            - name: RABBITMQ_HOST
-              value: rabbitmq
-            - name: RABBITMQ_PORT
-              value: "5672"
-            - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: ipa-pj-secret
-                  key: username
-            - name: RABBITMQ_DEFAULT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: ipa-pj-secret
-                  key: password
+          envFrom:
+            - secretRef:
+                name: "ipa-pj-secret"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      restartPolicy: Always
