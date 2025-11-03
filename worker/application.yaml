@@ -16,3 +16,10 @@ spec:
     automated:
       prune: true
       selfHeal: true
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: ipa-pj-worker
+      jsonPointers:
+        - /spec/replicas
