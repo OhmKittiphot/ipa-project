@@ -3,16 +3,20 @@ kind: ScaledObject
 metadata:
   name: ipa-pj-worker-scaler
   namespace: ipa2025
+  labels:
+    argocd.argoproj.io/instance: ipa-pj-worker
 spec:
   scaleTargetRef:
-    name: ipa-pj-worker
     kind: Deployment
+    name: ipa-pj-worker
+
   minReplicaCount: 1
   maxReplicaCount: 5
+
   triggers:
     - type: rabbitmq
       metadata:
-        host: amqp://admin:rabbitmq@rabbitmq.ipa2025.svc.cluster.local:5672/
+        host: amqp://admin:rabbitmq@rabbitmq:5672/
         queueName: router_jobs
         mode: QueueLength
         value: "10"
