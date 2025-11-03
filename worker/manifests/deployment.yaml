@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipa-pj-worker
+  namespace: ipa2025
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipa-pj-worker
+  template:
+    metadata:
+      labels:
+        app: ipa-pj-worker
+    spec:
+      containers:
+        - name: ipa-pj-worker
+          image: romieohm/worker:latest
+          envFrom:
+            - secretRef:
+                name: "ipa-pj-secret"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      restartPolicy: Always
