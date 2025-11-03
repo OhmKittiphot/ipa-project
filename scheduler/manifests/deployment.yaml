@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipa-pj-scheduler
+  namespace: ipa2025
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipa-pj-scheduler
+  template:
+    metadata:
+      labels:
+        app: ipa-pj-scheduler
+    spec:
+      containers:
+        - name: ipa-pj-scheduler
+          image: romieohm/scheduler:latest
+          envFrom:
+            - secretRef:
+                name: "ipa-pj-secret"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      restartPolicy: Always
