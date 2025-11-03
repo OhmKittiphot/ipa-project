@@ -30,11 +30,6 @@ data:
                    ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY unique_iface (router_ip, interface_name)
     );
-
-    -- สร้าง user สำหรับแอป (ปรับรหัสผ่านตามจริง)
-    CREATE USER IF NOT EXISTS 'ipauser'@'%' IDENTIFIED WITH mysql_native_password BY 'CHANGE_ME_PASSWORD';
-    GRANT ALL PRIVILEGES ON `ipa2025`.* TO 'ipauser'@'%';
-    FLUSH PRIVILEGES;
 ---
 # 2) PVC
 apiVersion: v1
@@ -56,7 +51,7 @@ metadata:
   namespace: ipa2025
   labels: { app: mysql }
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels: { app: mysql }
   template:
