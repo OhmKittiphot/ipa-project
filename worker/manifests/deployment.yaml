@@ -1,29 +1,59 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ipa-pj-worker
+  name: ipa-pj-consumer
   namespace: ipa2025
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ipa-pj-worker
+      app: ipa-pj-consumer
   template:
     metadata:
       labels:
-        app: ipa-pj-worker
+        app: ipa-pj-consumer
     spec:
       containers:
-        - name: ipa-pj-worker
-          image: romieohm/worker:latest
-          envFrom:
-            - secretRef:
-                name: "ipa-pj-secret"
-          resources:
-            requests:
-              cpu: "50m"
-              memory: "64Mi"
-            limits:
-              cpu: "200m"
-              memory: "256Mi"
-      restartPolicy: Always
+      - name: consumer
+        image: romieohm/consumer:latest
+        env:
+        - name: RABBIT_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: RABBIT_HOST
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: RABBITMQ_DEFAULT_USER
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: RABBITMQ_DEFAULT_PASS
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: DB_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: DB_NAME
+        - name: DISCORD_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: ipa-pj-secret
+              key: DISCORD_WEBHOOK
