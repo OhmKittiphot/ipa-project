@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ipa-pj-consumer
+  name: ipa-pj-worker
   namespace: ipa2025
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: ipa-pj-consumer
+      app: ipa-pj-worker
   template:
     metadata:
       labels:
-        app: ipa-pj-consumer
+        app: ipa-pj-worker
     spec:
       containers:
-      - name: consumer
-        image: romieohm/consumer:latest
+      - name: worker
+        image: romieohm/worker:latest
         env:
         - name: RABBIT_HOST
           valueFrom:
