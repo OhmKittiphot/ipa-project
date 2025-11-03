@@ -12,7 +12,7 @@ spec:
   triggers:
     - type: rabbitmq
       metadata:
-        host: amqp://admin:rabbitmq@rabbitmq.ipa2025.svc.cluster.local:5672/
+        hostFromEnv: RABBITMQ_HOST
         queueName: router_jobs
         mode: QueueLength
         value: "10"
